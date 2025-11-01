@@ -1,0 +1,9 @@
+{
+  "scripts": {
+    "start": "node ."
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "*",
+    "@adiwajshing/keyed-db": "*"
+  }
+}
