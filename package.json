@@ -1,6 +1,7 @@
 {
+  "type": "commonjs",
   "dependencies": {
-    "@whiskeysockets/baileys": "*",
-    "@adiwajshing/keyed-db": "*"
+    "baileys": "latest",
+    "@adiwajshing/keyed-db": "latest"
   }
 }
