@@ -9,7 +9,7 @@ const {
   updateMessageWithReaction,
   md5,
   jidDecode
-} = require('@whiskeysockets/baileys');
+} = require('baileys');
 
 const KeyedDB_ = require('@adiwajshing/keyed-db');
 const KeyedDB = KeyedDB_.default || KeyedDB_;
