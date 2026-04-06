@@ -1,7 +1,5 @@
 {
-  "scripts": {
-    "start": "node ."
-  },
+  "type": "commonjs",
   "dependencies": {
     "@whiskeysockets/baileys": "*",
     "@adiwajshing/keyed-db": "*"
