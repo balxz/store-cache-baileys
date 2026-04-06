@@ -1,15 +1,12 @@
 const LabelAssociationType = { Chat: 1, Message: 2 };
 
-const {
-  proto,
-  DEFAULT_CONNECTION_CONFIG,
-  jidNormalizedUser,
-  toNumber,
-  updateMessageWithReceipt,
-  updateMessageWithReaction,
-  md5,
-  jidDecode
-} = require('baileys');
+let baileys;
+async function loadBaileys() {
+  if (!baileys) {
+    baileys = await import('baileys');
+  }
+  return baileys;
+}
 
 const KeyedDB_ = require('@adiwajshing/keyed-db');
 const KeyedDB = KeyedDB_.default || KeyedDB_;
@@ -38,7 +35,18 @@ const waLabelAssociationKey = {
 
 const makeMessagesDictionary = () => makeOrderedDictionary(waMessageID);
 
-function makeInMemoryStore(config = {}) {
+async function makeInMemoryStore(config = {}) {
+  const {
+    proto,
+    DEFAULT_CONNECTION_CONFIG,
+    jidNormalizedUser,
+    toNumber,
+    updateMessageWithReceipt,
+    updateMessageWithReaction,
+    md5,
+    jidDecode
+  } = await loadBaileys();
+
   const socket = config.socket;
   const chatKey = config.chatKey || waChatKey(true);
   const labelAssociationKey = config.labelAssociationKey || waLabelAssociationKey;
