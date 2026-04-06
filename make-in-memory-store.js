@@ -8,17 +8,19 @@ async function loadBaileys() {
   return baileys;
 }
 
-const KeyedDB_ = require('@adiwajshing/keyed-db');
-const KeyedDB = KeyedDB_.default || KeyedDB_;
+import KeyedDBImport from '@adiwajshing/keyed-db';
+const KeyedDB = KeyedDBImport.default || KeyedDBImport;
 
-const makeOrderedDictionary = require('./make-ordered-dictionary.js');
-const ObjectRepository = require('./object-repository.js');
+import makeOrderedDictionary from './make-ordered-dictionary.js';
+import ObjectRepository from './object-repository.js';
 
 const waChatKey = (pin = true) => ({
   key: (c) =>
     (pin ? (c.pinned ? '1' : '0') : '') +
     (c.archived ? '0' : '1') +
-    (c.conversationTimestamp ? c.conversationTimestamp.toString(16).padStart(8, '0') : '') +
+    (c.conversationTimestamp
+      ? c.conversationTimestamp.toString(16).padStart(8, '0')
+      : '') +
     c.id,
   compare: (k1, k2) => k2.localeCompare(k1)
 });
@@ -33,9 +35,10 @@ const waLabelAssociationKey = {
   compare: (k1, k2) => k2.localeCompare(k1)
 };
 
-const makeMessagesDictionary = () => makeOrderedDictionary(waMessageID);
+const makeMessagesDictionary = () =>
+  makeOrderedDictionary(waMessageID);
 
-async function makeInMemoryStore(config = {}) {
+export default async function makeInMemoryStore(config = {}) {
   const {
     proto,
     DEFAULT_CONNECTION_CONFIG,
@@ -49,10 +52,14 @@ async function makeInMemoryStore(config = {}) {
 
   const socket = config.socket;
   const chatKey = config.chatKey || waChatKey(true);
-  const labelAssociationKey = config.labelAssociationKey || waLabelAssociationKey;
+  const labelAssociationKey =
+    config.labelAssociationKey || waLabelAssociationKey;
+
   const logger =
     config.logger ||
-    DEFAULT_CONNECTION_CONFIG.logger.child({ stream: 'in-mem-store' });
+    DEFAULT_CONNECTION_CONFIG.logger.child({
+      stream: 'in-mem-store'
+    });
 
   const chats = new KeyedDB(chatKey, (c) => c.id);
   const messages = {};
@@ -67,7 +74,8 @@ async function makeInMemoryStore(config = {}) {
   );
 
   const assertMessageList = (jid) => {
-    if (!messages[jid]) messages[jid] = makeMessagesDictionary();
+    if (!messages[jid])
+      messages[jid] = makeMessagesDictionary();
     return messages[jid];
   };
 
@@ -81,15 +89,23 @@ async function makeInMemoryStore(config = {}) {
   };
 
   const labelsUpsert = (newLabels) => {
-    for (const l of newLabels) labels.upsertById(l.id, l);
+    for (const l of newLabels)
+      labels.upsertById(l.id, l);
   };
 
   const bind = (ev) => {
-    ev.on('connection.update', (update) => Object.assign(state, update));
+    ev.on('connection.update', (update) =>
+      Object.assign(state, update)
+    );
 
     ev.on(
       'messaging-history.set',
-      ({ chats: newChats, contacts: newContacts, messages: newMessages, isLatest }) => {
+      ({
+        chats: newChats,
+        contacts: newContacts,
+        messages: newMessages,
+        isLatest
+      }) => {
         if (isLatest) {
           chats.clear();
           for (const id in messages) delete messages[id];
@@ -97,30 +113,46 @@ async function makeInMemoryStore(config = {}) {
         chats.insertIfAbsent(...newChats);
         contactsUpsert(newContacts);
         for (const msg of newMessages) {
-          assertMessageList(msg.key.remoteJid).upsert(msg, 'prepend');
+          assertMessageList(msg.key.remoteJid).upsert(
+            msg,
+            'prepend'
+          );
         }
       }
     );
 
-    ev.on('chats.upsert', (arr) => chats.upsert(...arr));
+    ev.on('chats.upsert', (arr) =>
+      chats.upsert(...arr)
+    );
+
     ev.on('chats.update', (updates) =>
       updates.forEach((u) =>
-        chats.update(u.id, (chat) => Object.assign(chat, u))
+        chats.update(u.id, (chat) =>
+          Object.assign(chat, u)
+        )
       )
     );
+
     ev.on('contacts.upsert', contactsUpsert);
 
     ev.on('messages.upsert', ({ messages: msgs, type }) => {
       if (type === 'notify' || type === 'append') {
         for (const msg of msgs) {
-          const jid = jidNormalizedUser(msg.key.remoteJid);
-          assertMessageList(jid).upsert(msg, 'append');
+          const jid = jidNormalizedUser(
+            msg.key.remoteJid
+          );
+          assertMessageList(jid).upsert(
+            msg,
+            'append'
+          );
 
           if (type === 'notify' && !chats.get(jid)) {
             ev.emit('chats.upsert', [
               {
                 id: jid,
-                conversationTimestamp: toNumber(msg.messageTimestamp),
+                conversationTimestamp: toNumber(
+                  msg.messageTimestamp
+                ),
                 unreadCount: 1
               }
             ]);
@@ -131,7 +163,10 @@ async function makeInMemoryStore(config = {}) {
 
     ev.on('messages.update', (updates) => {
       for (const { update, key } of updates) {
-        assertMessageList(key.remoteJid).updateAssign(key.id, update);
+        assertMessageList(key.remoteJid).updateAssign(
+          key.id,
+          update
+        );
       }
     });
 
@@ -141,7 +176,10 @@ async function makeInMemoryStore(config = {}) {
       } else {
         const jid = item.keys[0].remoteJid;
         messages[jid]?.filter(
-          (m) => !item.keys.some((k) => k.id === m.key.id)
+          (m) =>
+            !item.keys.some(
+              (k) => k.id === m.key.id
+            )
         );
       }
     });
@@ -151,34 +189,39 @@ async function makeInMemoryStore(config = {}) {
       Object.assign(presences[id], update);
     });
 
-    ev.on('group-participants.update', ({ id, participants, action }) => {
-      const meta = groupMetadata[id];
-      if (!meta) return;
+    ev.on(
+      'group-participants.update',
+      ({ id, participants, action }) => {
+        const meta = groupMetadata[id];
+        if (!meta) return;
 
-      switch (action) {
-        case 'add':
-          meta.participants.push(
-            ...participants.map((p) => ({
-              id: p,
-              isAdmin: false,
-              isSuperAdmin: false
-            }))
-          );
-          break;
-        case 'remove':
-          meta.participants = meta.participants.filter(
-            (p) => !participants.includes(p.id)
-          );
-          break;
-        case 'promote':
-        case 'demote':
-          meta.participants.forEach((p) => {
-            if (participants.includes(p.id))
-              p.isAdmin = action === 'promote';
-          });
-          break;
+        switch (action) {
+          case 'add':
+            meta.participants.push(
+              ...participants.map((p) => ({
+                id: p,
+                isAdmin: false,
+                isSuperAdmin: false
+              }))
+            );
+            break;
+          case 'remove':
+            meta.participants =
+              meta.participants.filter(
+                (p) =>
+                  !participants.includes(p.id)
+              );
+            break;
+          case 'promote':
+          case 'demote':
+            meta.participants.forEach((p) => {
+              if (participants.includes(p.id))
+                p.isAdmin = action === 'promote';
+            });
+            break;
+        }
       }
-    });
+    );
   };
 
   return {
@@ -194,7 +237,11 @@ async function makeInMemoryStore(config = {}) {
 
     loadMessages: async (jid, count, cursor) => {
       const list = assertMessageList(jid);
-      const mode = !cursor || 'before' in cursor ? 'before' : 'after';
+      const mode =
+        !cursor || 'before' in cursor
+          ? 'before'
+          : 'after';
+
       const cursorKey = cursor
         ? 'before' in cursor
           ? cursor.before
@@ -207,13 +254,20 @@ async function makeInMemoryStore(config = {}) {
 
       let msgs = [];
 
-      if (list && mode === 'before' && (!cursorKey || cursorValue)) {
+      if (
+        list &&
+        mode === 'before' &&
+        (!cursorKey || cursorValue)
+      ) {
         const idx = cursorValue
-          ? list.array.findIndex((m) => m.key.id === cursorKey.id)
+          ? list.array.findIndex(
+              (m) => m.key.id === cursorKey.id
+            )
           : list.array.length;
 
         msgs = list.array.slice(0, idx);
-        if (msgs.length > count) msgs = msgs.slice(-count);
+        if (msgs.length > count)
+          msgs = msgs.slice(-count);
       }
 
       return msgs;
@@ -227,17 +281,20 @@ async function makeInMemoryStore(config = {}) {
 
     fetchImageUrl: async (jid, sock) => {
       const c = contacts[jid];
-      if (!c) return sock?.profilePictureUrl(jid);
+      if (!c)
+        return sock?.profilePictureUrl(jid);
 
       if (typeof c.imgUrl === 'undefined')
-        c.imgUrl = await sock?.profilePictureUrl(jid);
+        c.imgUrl =
+          await sock?.profilePictureUrl(jid);
 
       return c.imgUrl;
     },
 
     fetchGroupMetadata: async (jid, sock) => {
       if (!groupMetadata[jid])
-        groupMetadata[jid] = await sock?.groupMetadata(jid);
+        groupMetadata[jid] =
+          await sock?.groupMetadata(jid);
       return groupMetadata[jid];
     },
 
@@ -251,9 +308,13 @@ async function makeInMemoryStore(config = {}) {
 
     fromJSON: (json) => {
       chats.upsert(...json.chats);
-      labelAssociations.upsert(...(json.labelAssociations || []));
+      labelAssociations.upsert(
+        ...(json.labelAssociations || [])
+      );
       contactsUpsert(Object.values(json.contacts));
-      labelsUpsert(Object.values(json.labels || {}));
+      labelsUpsert(
+        Object.values(json.labels || {})
+      );
 
       for (const jid in json.messages) {
         const list = assertMessageList(jid);
@@ -267,5 +328,3 @@ async function makeInMemoryStore(config = {}) {
     }
   };
 }
-
-module.exports = makeInMemoryStore;
