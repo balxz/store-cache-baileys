@@ -1,1 +1,1 @@
-export { default as makeInMemoryStore } from './make-in-memory-store.js'
+module.exports.makeInMemoryStore = require('./make-in-memory-store.js');
