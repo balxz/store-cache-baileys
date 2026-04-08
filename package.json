@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "baileys": "npm:@blckrose/baileys",
+    "baileys": "npm:@kyuu2nd/baileys",
     "@adiwajshing/keyed-db": "latest"
   }
 }
